@@ -1,0 +1,4 @@
+attack,naive_HAR,conservative_HAR,n,naive_effect,conservative_effect
+clean,0.0,0.0,1273,0.0,0.0
+contract_complexity,0.2356637863315004,0.0,1273,0.2356637863315004,0.0
+tail_incentive,0.389630793401414,0.0,1273,0.389630793401414,0.0

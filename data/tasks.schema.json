@@ -1,0 +1,11 @@
+{
+  "required": ["task_id", "item_state", "buyer_preferences", "seller_constraints", "clean_offer"],
+  "properties": {
+    "task_id": {"type": "string"},
+    "item_state": {"type": "object"},
+    "buyer_preferences": {"type": "object"},
+    "seller_constraints": {"type": "object"},
+    "clean_offer": {"type": "object"},
+    "metadata": {"type": "object"}
+  }
+}

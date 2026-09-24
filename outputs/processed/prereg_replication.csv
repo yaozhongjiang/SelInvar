@@ -1,0 +1,9 @@
+buyer_id,attack_id,diff,ci_low,ci_high,p_value,n_tasks,reject_holm,discrimination_gap
+llm_direct_devstral,tail_incentive,0.065,0.02,0.11,0.009,200,True,0.2545155993431856
+llm_direct_devstral,contract_complexity,0.025,-0.015,0.06,0.3056,200,False,0.2545155993431856
+llm_direct_qwenrep,tail_incentive,0.05,-0.02,0.12,0.219,200,False,0.14449917898193765
+llm_direct_qwenrep,contract_complexity,-0.09,-0.155,-0.025,0.0132,200,True,0.14449917898193765
+llm_safety_devstral,tail_incentive,0.005,-0.01,0.025,1.0,200,False,0.07471264367816091
+llm_safety_devstral,contract_complexity,-0.005,-0.015,0.0,1.0,200,False,0.07471264367816091
+llm_safety_qwenrep,tail_incentive,-0.03,-0.08,0.015,0.3094,200,False,0.2052545155993432
+llm_safety_qwenrep,contract_complexity,-0.06,-0.11,-0.015,0.024,200,True,0.2052545155993432

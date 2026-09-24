@@ -1,0 +1,10 @@
+environment,rule,certified,tau,eps_hi,risk_static,risk_best_response,valid
+CraigslistBargain,scalar radius (Sec. 5.7),True,,0.07,0.08330134357005758,0.06641074856046066,0.36693172470523716
+CraigslistBargain,attackability-gated (ours),True,0.45,0.25,0.06641074856046066,0.05489443378119002,0.40773238278036744
+CraigslistBargain,oracle gate,True,,,0.0,,0.4199067726898821
+AmazonHistoryPrice,scalar radius (Sec. 5.7),True,,0.13,0.02159827213822894,0.01079913606911447,0.6266584387534712
+AmazonHistoryPrice,attackability-gated (ours),False,,,,,
+AmazonHistoryPrice,oracle gate,True,,,0.0064794816414686825,,0.6939216291268128
+DealOrNoDeal,scalar radius (Sec. 5.7),True,,0.3,0.031421838177533384,0.031421838177533384,0.10274941084053417
+DealOrNoDeal,attackability-gated (ours),True,0.25,0.4,0.04870384917517675,0.04870384917517675,0.6626865671641791
+DealOrNoDeal,oracle gate,True,,,0.0,,0.7250589159465829
