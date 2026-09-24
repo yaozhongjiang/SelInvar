@@ -103,3 +103,8 @@ listing text is shipped verbatim, including contact strings that appear in the
 public source listings. Nothing in this repository executes a tool call, sends a
 message, or contacts a counterparty: the renderings are data and the decisions
 are recorded fields.
+
+## License
+
+MIT, see `LICENSE`. The corpora under `data/` are redistributed under the terms
+of their original releases and are not covered by it.
