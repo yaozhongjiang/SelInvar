@@ -1,4 +1,4 @@
-"""Integrity checks on the experimental artifacts, and on the numbers the paper quotes.
+"""Integrity checks on the experimental artifacts, and on the numbers the study quotes.
 
     python scripts/check_artifacts.py --mode claims
 
@@ -105,7 +105,7 @@ def prompt_defence_spread(attack: str) -> float:
     Proposition `blackbox` says a defence that does not change the representation
     can only be proof for the particular model it was written against, so this
     spread must be large; the canonicalised channels are checked separately and
-    are exactly zero. If a future run made these agree, the dichotomy the paper
+    are exactly zero. If a future run made these agree, the dichotomy the study
     draws would be gone and the claim would need rewriting rather than rescaling.
     """
     d = load("summary.csv")
@@ -124,7 +124,7 @@ def prompt_defence_spread(attack: str) -> float:
 def cd_harm(channel: str, defence: str, which: str = "max") -> float:
     """Harm rate for one out-of-domain cell, across the three families.
 
-    The paper's claim there is a pattern of exact zeros, so `max` is the right
+    The study's claim there is a pattern of exact zeros, so `max` is the right
     reduction: a structural defence that leaked on a single family would be
     hidden by a mean and is the failure this is meant to catch.
     """
@@ -227,7 +227,7 @@ def adj_channel(arm: str, on_channel: bool, suite: str = "banking",
 
     Eight of banking's nine injection goals require sending money to an
     attacker-controlled recipient, which is the class-two channel; the ninth
-    changes a password instead and is off it. The paper claims exactness on the
+    changes a password instead and is off it. The study claims exactness on the
     first group and inertness on the second, so a mean over all nine would hide
     both halves.
     """
@@ -304,7 +304,7 @@ def _unused_boundary_effect() -> float:
     """Contract-channel effect once the completion sets are made incomparable.
 
     This is the failing side of Proposition 1's precondition, so it is the one
-    number in the paper whose value is supposed to be non-zero under closure.
+    number in the study whose value is supposed to be non-zero under closure.
     """
     d = pd.read_json(ROOT / "outputs" / "raw" / "ablations_boundary.jsonl",
                      lines=True) if (ROOT / "outputs" / "raw" /
@@ -700,7 +700,7 @@ def main() -> int:
               f"silently turns three of its families into no-ops")
 
     # ---- the multi-round result is an invariance, not an average -----------
-    # The paper reports 0.0000 for the closure on the identity-violating
+    # The study reports 0.0000 for the closure on the identity-violating
     # inflation. That is only meaningful if no single task was non-zero, so the
     # per-task flag is asserted rather than the mean being re-rounded.
     R = load("dnd_rounds_summary.csv")
@@ -802,7 +802,7 @@ def main() -> int:
           and float(spread.harm.max()) - float(spread.harm.min()) > 0.5,
           "the prompt defence is model-dependent out of domain",
           "the spread collapsed; Proposition 3's empirical consequence would "
-          "no longer hold and the paper's claim needs rewriting")
+          "no longer hold and the study's claim needs rewriting")
 
     fams = set(load("discrimination.csv").buyer_id) & MODEL_FAMILIES
     check(fams == MODEL_FAMILIES, "exactly the seven model families are present",
@@ -817,7 +817,7 @@ def main() -> int:
         check(bool(src), f"write-up readable at {tex}", "not found")
     # An older write-up may predate the AgentDojo and prompt-form studies
     # and does not quote their numbers. Those claims still have to recompute --
-    # a broken artifact is broken for either paper -- but requiring their
+    # a broken artifact is broken for either study -- but requiring their
     # strings to appear in a write-up that never made the claim would fail a
     # correct file. Presence of the study in the source decides which rule
     # applies, so nothing quoted anywhere goes unguarded.
