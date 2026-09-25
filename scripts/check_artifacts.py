@@ -205,8 +205,8 @@ def adj(arm: str, column: str = "attack_success",
     return float(r[column].iloc[0])
 
 
-def adj_channel(arm: str, on_channel: bool,
-                suite: str = "banking") -> float:
+def adj_channel(arm: str, on_channel: bool, suite: str = "banking",
+                model: str = "gpt-4o-mini") -> float:
     """Attack success split by whether the injection needs the closed channel.
 
     Eight of banking's nine injection goals require sending money to an
@@ -215,7 +215,7 @@ def adj_channel(arm: str, on_channel: bool,
     first group and inertness on the second, so a mean over all nine would hide
     both halves.
     """
-    d = _agentdojo()
+    d = _agentdojo(model)
     scope = "on_channel" if on_channel else "off_channel"
     r = d[(d.arm == arm) & (d.vector == "all") & (d.scope == scope)
           & (d.suite == suite)]
@@ -493,6 +493,24 @@ CLAIMS: List[Tuple[str, str, Callable[[], float], float]] = [
      lambda: adj_channel("undefended", False, "slack"), 0.001),
     ("agentdojo banking, closure aggregate", "0.049",
      lambda: adj("canonicalization"), 0.001),
+    ("agentdojo gpt-4o, undefended on channel", "0.523",
+     lambda: adj_channel("undefended", True, "banking", model="gpt-4o"), 0.001),
+    ("agentdojo gpt-4o, closure on channel", "0.000",
+     lambda: adj_channel("canonicalization", True, "banking", model="gpt-4o"), 1e-9),
+    ("agentdojo gpt-4o, closure off channel", "0.500",
+     lambda: adj_channel("canonicalization", False, "banking", model="gpt-4o"), 0.001),
+    ("agentdojo gpt-4o, undefended off channel", "0.625",
+     lambda: adj_channel("undefended", False, "banking", model="gpt-4o"), 0.001),
+    ("agentdojo gpt-4o, undefended utility", "0.743",
+     lambda: adj("undefended", "utility", model="gpt-4o"), 0.001),
+    ("agentdojo gpt-4o, closure utility", "0.681",
+     lambda: adj("canonicalization", "utility", model="gpt-4o"), 0.001),
+    ("agentdojo gpt-4o, prompt defense on channel", "0.047",
+     lambda: adj_channel("prompt_defense", True, "banking", model="gpt-4o"), 0.001),
+    ("agentdojo gpt-4o, datamarking on channel", "0.391",
+     lambda: adj_channel("datamarking", True, "banking", model="gpt-4o"), 0.001),
+    ("agentdojo gpt-4o, undefended aggregate", "0.535",
+     lambda: adj("undefended", model="gpt-4o"), 0.001),
     ("agentdojo, payload reached the second model", "0.938",
      lambda: adj_exposure("gpt-5-mini", "saw_injection"), 0.001),
     ("agentdojo, payload reached the first model", "0.847",
