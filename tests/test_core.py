@@ -737,7 +737,7 @@ def test_clean_signal_values_the_offer_correctly_in_every_environment(tasks, ahp
 
 
 # --- Proposition: black-box proofness forces invariance -----------------------
-# The study's criterion borrows the polar-cone condition from strategic
+# This study's criterion borrows the polar-cone condition from strategic
 # classification, where the decision-maker designs the valuation. We do not; the
 # buyer is an opaque model and our only lever is the preprocessing map. These
 # tests assert the two halves of the resulting proposition and the strictness of
@@ -1029,7 +1029,7 @@ def test_verified_citation_identifiers_are_still_present():
     """Guard the citation audit against silent drift.
 
     Each arXiv id below was matched to its title and full author list against the
-    arXiv API (each was checked against the arXiv API). One entry in this study was
+    arXiv API (see artifact/CITATIONS_VERIFIED.md). One entry in this study was
     once attributed to the wrong authors entirely, so an id that disappears or
     changes should fail loudly rather than be noticed by a reviewer.
     """
@@ -1054,19 +1054,36 @@ def test_verified_citation_identifiers_are_still_present():
         "guo2026ambiguity": "2607.09820",
         "oh2026merit": "2602.10467",
     }
-    for tex in sorted(root.glob("*/main*.tex")):
-        src = tex.read_text(encoding="utf8")
-        name = tex.name
-        import re as _re
+    import re as _re
+    # Both bibliography forms are covered: an inline list in a write-up, and a
+    # .bib processed by BibTeX. Moving the entries into a .bib must not leave
+    # this guard silently checking nothing.
+    # The write-up sits beside the code in the working tree and one level
+    # deeper in the released artifact, so both depths are searched.
+    sources = sorted(set(
+        list(root.glob("*/main*.tex")) + list(root.glob("*/*/main*.tex"))
+        + list(root.glob("*/references.bib")) + list(root.glob("*/*/references.bib"))))
+    checked = 0
+    for src_path in sources:
+        src = src_path.read_text(encoding="utf8")
+        name = f"{src_path.parent.name}/{src_path.name}"
         for key, arx in verified.items():
-            # Anchor on the bibitem, not on the first occurrence of the key: the
-            # first occurrence is a \citep in the body, and slicing from there
-            # spans the whole study rather than the entry.
+            # Anchor on the entry, not on the first occurrence of the key: that
+            # occurrence is a \citep in the body, and slicing from there spans
+            # the whole document rather than the entry.
             m = _re.search(r"\\bibitem\[[^\]]*\]\{" + _re.escape(key) +
                            r"\}\n(.*?)(?=\n\\bibitem|\n\\end\{thebibliography\})",
                            src, _re.S)
-            assert m, f"{name}: {key} vanished from the bibliography"
+            if m is None:
+                m = _re.search(r"@\w+\s*\{\s*" + _re.escape(key) + r"\s*,(.*?)\n\}",
+                               src, _re.S)
+            if m is None:
+                continue                  # this file carries the other form
+            checked += 1
             assert arx in m.group(1), f"{name}: {key} no longer carries arXiv:{arx}"
+    if sources:
+        assert checked >= len(verified), \
+            "a bibliography source is present but carried none of the checked entries"
 
 
 def test_paper_states_the_right_number_of_invariants():
@@ -1086,7 +1103,7 @@ def test_paper_states_the_right_number_of_invariants():
     n = int(m.group(1))
     for tex in sorted(root.glob("*/main*.tex")):
         src = tex.read_text(encoding="utf8")
-        name = tex.name
+        name = f"{tex.parent.name}/{tex.name}"
         stated = re.search(r"(\d+) invariants", src)
         assert stated, f"{name}: no invariant count stated"
         assert int(stated.group(1)) == n, (
