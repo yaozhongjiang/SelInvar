@@ -180,13 +180,20 @@ def adj_exposure(model: str, column: str) -> float:
     return float(r[column].iloc[0])
 
 
-def framing(model: str, condition: str) -> float:
-    """Share of repeats in which a framing condition moves money to the attacker."""
+def framing(model: str, condition: str, scenario: str = "") -> float:
+    """Share of episodes in which a framing condition moves money to the attacker.
+
+    Pooled over scenarios unless one is named, weighting by the episodes each
+    contributed rather than averaging rates, since a rate over ten repeats and
+    a rate over thirty are not interchangeable.
+    """
     d = load("framing_probe.csv")
     r = d[(d.model_id == model) & (d.condition == condition)]
+    if scenario:
+        r = r[r.scenario == scenario]
     if not len(r):
         raise KeyError(f"{model}/{condition} missing from framing_probe")
-    return float(r.paid_attacker.iloc[0])
+    return float((r.paid_attacker * r.n).sum() / r.n.sum())
 
 
 def prose(model: str, form: str, attack: str) -> float:
@@ -502,14 +509,18 @@ CLAIMS: List[Tuple[str, str, Callable[[], float], float]] = [
      lambda: adj_channel("undefended", False, "slack"), 0.001),
     ("agentdojo banking, closure aggregate", "0.049",
      lambda: adj("canonicalization"), 0.001),
-    ("framing, payee correction defeats the resistant model", "1.000",
-     lambda: framing("gpt-5-mini", "C6_payee_correction"), 1e-9),
+    ("framing, payee correction defeats the resistant model", "0.567",
+     lambda: framing("gpt-5-mini", "C6_payee_correction"), 0.001),
     ("framing, marked injection refused by that model", "0.000",
      lambda: framing("gpt-5-mini", "C1_marked_impersonating"), 1e-9),
     ("framing, goal-aligned instruction obeyed", "0.000",
      lambda: framing("gpt-5-mini", "C4_goal_aligned"), 1e-9),
     ("framing, weaker model complies with the marked injection", "1.000",
      lambda: framing("gpt-4o-mini", "C1_marked_impersonating"), 1e-9),
+    ("framing, payee correction on the strongest model", "1.000",
+     lambda: framing("gpt-4o", "C6_payee_correction"), 1e-9),
+    ("framing, injection shapes refused by the resistant model", "0.000",
+     lambda: framing("gpt-5-mini", "C2_plain_prose"), 1e-9),
     ("agentdojo gpt-4o, undefended on channel", "0.523",
      lambda: adj_channel("undefended", True, "banking", model="gpt-4o"), 0.001),
     ("agentdojo gpt-4o, closure on channel", "0.000",
