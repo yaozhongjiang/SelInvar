@@ -484,6 +484,14 @@ CLAIMS: List[Tuple[str, str, Callable[[], float], float]] = [
      lambda: adj_channel("undefended", False, "slack"), 0.001),
     ("agentdojo banking, closure aggregate", "0.049",
      lambda: adj("canonicalization"), 0.001),
+    ("agentdojo, second model undefended attack success", "0.007",
+     lambda: adj("undefended", model="gpt-5-mini"), 0.001),
+    ("agentdojo, second model under closure", "0.000",
+     lambda: adj("canonicalization", model="gpt-5-mini"), 1e-9),
+    ("agentdojo, second model utility", "0.542",
+     lambda: adj("undefended", "utility", model="gpt-5-mini"), 0.001),
+    ("agentdojo, second model addressed generically", "0.000",
+     lambda: adj("undefended", model="gpt-5-mini@generic-name"), 1e-9),
     ("agentdojo, datamarking paired difference", "+0.062",
      lambda: adj("datamarking") - adj("undefended"), 0.001),
     ("agentdojo, prompt defense paired difference", "-0.062",
@@ -735,17 +743,19 @@ def main() -> int:
 
     # ---- the write-up's numbers must recompute ---------------------------
     # A write-up is optional here. When one is supplied every registered value
-    # must also appear in its text, which catches a number that was edited in
-    # prose but never recomputed; without one the values are still recomputed
-    # from the shipped summaries, so the checks stay meaningful on their own.
+    # must also appear in its text, which catches a number edited in prose but
+    # never recomputed; without one the values are still recomputed from the
+    # shipped summaries, so the checks stay meaningful on their own.
     tex = (ROOT / args.paper / args.tex).resolve() if args.paper else None
     src = tex.read_text(encoding="utf8") if tex and tex.exists() else ""
     if args.paper:
         check(bool(src), f"write-up readable at {tex}", "not found")
-    # An older write-up may predate the AgentDojo and prompt-form studies and
-    # not quote their numbers. Those claims still have to recompute, since a
-    # broken artifact is broken either way, but requiring their strings to
-    # appear in a text that never made the claim would fail a correct file.
+    # An older write-up may predate the AgentDojo and prompt-form studies
+    # and does not quote their numbers. Those claims still have to recompute --
+    # a broken artifact is broken for either study -- but requiring their
+    # strings to appear in a write-up that never made the claim would fail a
+    # correct file. Presence of the study in the source decides which rule
+    # applies, so nothing quoted anywhere goes unguarded.
     added_later = ("agentdojo", "prose")
     has_new = "AgentDojo" in src
     for label, text, fn, tol in CLAIMS:

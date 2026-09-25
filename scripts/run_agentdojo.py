@@ -59,6 +59,9 @@ from src.adj_defenses import (SUITE_POLICY, SYSTEM_DEFENSE_SUFFIX,
 ADJ_MODEL_KEY = {
     "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
     "gpt-4o": "gpt-4o-2024-05-13",
+    # Their registry predates this family, so the attack would address it under
+    # another family's name. `--address-as` overrides the choice, which is what
+    # separates "the model resists" from "we mislabelled it in the attack text".
     "gpt-5-mini": "gpt-4o-mini-2024-07-18",
 }
 
@@ -201,6 +204,8 @@ def main() -> None:
                                       "datamarking,prompt_defense")
     ap.add_argument("--drop-fields", default="subject",
                     help="fields the class-one operator removes")
+    ap.add_argument("--address-as", default="",
+                    help="AgentDojo model key the attack should address")
     ap.add_argument("--restrict-vector", default="",
                     help="deliver the injection through this vector only")
     ap.add_argument("--logdir", default="outputs/adj_runs")
@@ -230,6 +235,8 @@ def main() -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     for arm in args.arms.split(","):
         pipeline = build_pipeline(arm, client, args.model, drop, args.suite)
+        if args.address_as:
+            pipeline.name = f"{args.address_as}-{args.model}-{arm}"
         attack = load_attack(args.attack, suite, pipeline)
         if args.restrict_vector:
             attack = SingleVectorAttack(attack, args.restrict_vector)
