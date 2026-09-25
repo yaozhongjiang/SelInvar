@@ -18,7 +18,7 @@ pip install -r requirements.txt
 make all
 ```
 
-`make test` runs 66 invariants. `make verify` recomputes 109 reported values from
+`make test` runs 66 invariants. `make verify` recomputes 113 reported values from
 the summaries in `outputs/processed/` and fails if any disagrees. Values of
 `0.0000` are asserted as invariances over every task rather than as rounded
 means, so a single non-zero task fails the check.
