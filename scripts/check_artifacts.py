@@ -1,4 +1,4 @@
-"""Integrity checks on the experimental artifacts, and on the numbers the study quotes.
+"""Integrity checks on the experimental artifacts, and on the numbers the paper quotes.
 
     python scripts/check_artifacts.py --mode claims
 
@@ -105,7 +105,7 @@ def prompt_defence_spread(attack: str) -> float:
     Proposition `blackbox` says a defence that does not change the representation
     can only be proof for the particular model it was written against, so this
     spread must be large; the canonicalised channels are checked separately and
-    are exactly zero. If a future run made these agree, the dichotomy the study
+    are exactly zero. If a future run made these agree, the dichotomy the paper
     draws would be gone and the claim would need rewriting rather than rescaling.
     """
     d = load("summary.csv")
@@ -124,7 +124,7 @@ def prompt_defence_spread(attack: str) -> float:
 def cd_harm(channel: str, defence: str, which: str = "max") -> float:
     """Harm rate for one out-of-domain cell, across the three families.
 
-    The study's claim there is a pattern of exact zeros, so `max` is the right
+    The paper's claim there is a pattern of exact zeros, so `max` is the right
     reduction: a structural defence that leaked on a single family would be
     hidden by a mean and is the failure this is meant to catch.
     """
@@ -171,6 +171,15 @@ def _agentdojo(model: str = "gpt-4o-mini") -> pd.DataFrame:
     return d[d.model_id == model]
 
 
+def adj_exposure(model: str, column: str) -> float:
+    """One cell of the exposure table: did the payload arrive, and what followed."""
+    d = load("agentdojo_exposure.csv")
+    r = d[d.model_id == model]
+    if not len(r):
+        raise KeyError(f"{model} missing from agentdojo_exposure")
+    return float(r[column].iloc[0])
+
+
 def prose(model: str, form: str, attack: str) -> float:
     """One cell of the prompt-form study.
 
@@ -202,7 +211,7 @@ def adj_channel(arm: str, on_channel: bool,
 
     Eight of banking's nine injection goals require sending money to an
     attacker-controlled recipient, which is the class-two channel; the ninth
-    changes a password instead and is off it. The study claims exactness on the
+    changes a password instead and is off it. The paper claims exactness on the
     first group and inertness on the second, so a mean over all nine would hide
     both halves.
     """
@@ -279,7 +288,7 @@ def _unused_boundary_effect() -> float:
     """Contract-channel effect once the completion sets are made incomparable.
 
     This is the failing side of Proposition 1's precondition, so it is the one
-    number in the study whose value is supposed to be non-zero under closure.
+    number in the paper whose value is supposed to be non-zero under closure.
     """
     d = pd.read_json(ROOT / "outputs" / "raw" / "ablations_boundary.jsonl",
                      lines=True) if (ROOT / "outputs" / "raw" /
@@ -484,6 +493,18 @@ CLAIMS: List[Tuple[str, str, Callable[[], float], float]] = [
      lambda: adj_channel("undefended", False, "slack"), 0.001),
     ("agentdojo banking, closure aggregate", "0.049",
      lambda: adj("canonicalization"), 0.001),
+    ("agentdojo, payload reached the second model", "0.938",
+     lambda: adj_exposure("gpt-5-mini", "saw_injection"), 0.001),
+    ("agentdojo, payload reached the first model", "0.847",
+     lambda: adj_exposure("gpt-4o-mini", "saw_injection"), 0.001),
+    ("agentdojo, first model acted on the payload", "0.542",
+     lambda: adj_exposure("gpt-4o-mini", "attempted_attacker_action"), 0.001),
+    ("agentdojo, second model acted on the payload", "0.007",
+     lambda: adj_exposure("gpt-5-mini", "attempted_attacker_action"), 0.001),
+    ("agentdojo, second model flagged it", "0.549",
+     lambda: adj_exposure("gpt-5-mini", "flagged_in_reply"), 0.001),
+    ("agentdojo, first model flagged it", "0.028",
+     lambda: adj_exposure("gpt-4o-mini", "flagged_in_reply"), 0.001),
     ("agentdojo, second model undefended attack success", "0.007",
      lambda: adj("undefended", model="gpt-5-mini"), 0.001),
     ("agentdojo, second model under closure", "0.000",
@@ -633,7 +654,7 @@ def main() -> int:
               f"silently turns three of its families into no-ops")
 
     # ---- the multi-round result is an invariance, not an average -----------
-    # The study reports 0.0000 for the closure on the identity-violating
+    # The paper reports 0.0000 for the closure on the identity-violating
     # inflation. That is only meaningful if no single task was non-zero, so the
     # per-task flag is asserted rather than the mean being re-rounded.
     R = load("dnd_rounds_summary.csv")
@@ -735,24 +756,22 @@ def main() -> int:
           and float(spread.harm.max()) - float(spread.harm.min()) > 0.5,
           "the prompt defence is model-dependent out of domain",
           "the spread collapsed; Proposition 3's empirical consequence would "
-          "no longer hold and the study's claim needs rewriting")
+          "no longer hold and the paper's claim needs rewriting")
 
     fams = set(load("discrimination.csv").buyer_id) & MODEL_FAMILIES
     check(fams == MODEL_FAMILIES, "exactly the seven model families are present",
           f"got {sorted(fams)}")
 
     # ---- the write-up's numbers must recompute ---------------------------
-    # A write-up is optional here. When one is supplied every registered value
-    # must also appear in its text, which catches a number edited in prose but
-    # never recomputed; without one the values are still recomputed from the
-    # shipped summaries, so the checks stay meaningful on their own.
+    # A write-up is optional here; without one the values are still recomputed
+    # from the shipped summaries, so the checks stay meaningful on their own.
     tex = (ROOT / args.paper / args.tex).resolve() if args.paper else None
     src = tex.read_text(encoding="utf8") if tex and tex.exists() else ""
     if args.paper:
         check(bool(src), f"write-up readable at {tex}", "not found")
     # An older write-up may predate the AgentDojo and prompt-form studies
     # and does not quote their numbers. Those claims still have to recompute --
-    # a broken artifact is broken for either study -- but requiring their
+    # a broken artifact is broken for either paper -- but requiring their
     # strings to appear in a write-up that never made the claim would fail a
     # correct file. Presence of the study in the source decides which rule
     # applies, so nothing quoted anywhere goes unguarded.
