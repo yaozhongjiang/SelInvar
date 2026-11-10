@@ -82,6 +82,19 @@ def camel_runs():
     b = b[b.arm == "camel"]
     rows.append({"suite": "travel", "metric": "camel_benign_successes", "value": int(b.utility.sum())})
     rows.append({"suite": "travel", "metric": "camel_benign_tasks", "value": len(b)})
+    # Class-three goals: canonicalization against undefended on the same pairs.
+    for s in ("banking", "travel", "slack"):
+        d = pd.read_json(REB / f"snapshot_{s}.jsonl", lines=True)
+        d = d[~d.injection_task.map(ON_CHANNEL[s])]
+        p = d.pivot_table(index=["user_task", "injection_task"], columns="arm",
+                          values="attack_success", aggfunc="first").astype(int)
+        only_u = int(((p.undefended == 1) & (p.canonicalization == 0)).sum())
+        only_c = int(((p.undefended == 0) & (p.canonicalization == 1)).sum())
+        n, k = only_u + only_c, min(only_u, only_c)
+        pval = min(1.0, 2 * sum(math.comb(n, i) for i in range(k + 1)) / 2 ** n) if n else 1.0
+        rows += [{"suite": s, "metric": "class3_pairs", "value": len(p)},
+                 {"suite": s, "metric": "class3_discordant", "value": n},
+                 {"suite": s, "metric": "class3_mcnemar_p", "value": pval}]
     pd.DataFrame(rows).to_csv(PROC / "camel_harness_runs.csv", index=False)
 
 
