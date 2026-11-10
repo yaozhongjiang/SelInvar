@@ -1,2 +1,3 @@
-pairs,pairs_on_channel,successes,successes_on_channel
-389,189,176,87
+config,pairs,pairs_on_channel,successes,successes_on_channel
+snapshot,389,189,183,97
+alias,389,189,176,87

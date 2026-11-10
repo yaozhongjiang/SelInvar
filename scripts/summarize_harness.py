@@ -86,14 +86,23 @@ def camel_runs():
 
 
 def coverage():
-    """Share of undefended gpt-4o-mini pairs, and of their successes, on closable goals."""
-    r = pd.read_json(ROOT / "outputs/raw/agentdojo.jsonl", lines=True)
-    r = r[(r.model_id == "gpt-4o-mini") & (r.arm == "undefended") & (r.vector.fillna("all") == "all")]
-    r["on"] = [ON_CHANNEL[s](t) for s, t in zip(r.suite, r.injection_task)]
-    succ = r[r.attack_success.astype(bool)]
-    pd.DataFrame([{"pairs": len(r), "pairs_on_channel": int(r.on.sum()),
-                   "successes": len(succ), "successes_on_channel": int(succ.on.sum())}]
-                 ).to_csv(PROC / "agentdojo_coverage.csv", index=False)
+    """Share of undefended gpt-4o-mini pairs, and of their successes, on closable goals.
+
+    Two configurations: the dated snapshot every arm of the CaMeL comparison
+    uses, and the undated alias of the original AgentDojo runs.
+    """
+    snap = pd.concat([pd.read_json(REB / f"snapshot_{s}.jsonl", lines=True).assign(suite=s)
+                      for s in ("banking", "travel", "slack")])
+    alias = pd.read_json(ROOT / "outputs/raw/agentdojo.jsonl", lines=True)
+    alias = alias[alias.model_id == "gpt-4o-mini"]
+    rows = []
+    for config, r in (("snapshot", snap), ("alias", alias)):
+        r = r[(r.arm == "undefended") & (r.vector.fillna("all") == "all")].copy()
+        r["on"] = [ON_CHANNEL[s](t) for s, t in zip(r.suite, r.injection_task)]
+        succ = r[r.attack_success.astype(bool)]
+        rows.append({"config": config, "pairs": len(r), "pairs_on_channel": int(r.on.sum()),
+                     "successes": len(succ), "successes_on_channel": int(succ.on.sum())})
+    pd.DataFrame(rows).to_csv(PROC / "agentdojo_coverage.csv", index=False)
 
 
 def main():

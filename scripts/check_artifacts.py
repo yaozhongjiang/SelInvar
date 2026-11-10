@@ -344,8 +344,9 @@ def va_cost(scale: int, col: str) -> float:
     return 100 * (base - at) / base
 
 
-def coverage(col: str) -> float:
-    return float(load("agentdojo_coverage.csv")[col].iloc[0])
+def coverage(col: str, config: str = "snapshot") -> float:
+    d = load("agentdojo_coverage.csv")
+    return float(d[d.config == config][col].iloc[0])
 
 
 def camel_run(suite: str, metric: str) -> float:
@@ -717,8 +718,11 @@ CLAIMS: List[Tuple[str, str, Callable[[], float], float]] = [
      lambda: va_cost(3, "tasks_flipped_to_accept"), 0.5),
     ("informed seller, closable pairs", "189", lambda: coverage("pairs_on_channel"), 0),
     ("informed seller, all pairs", "389", lambda: coverage("pairs"), 0),
-    ("informed seller, closable successes", "87", lambda: coverage("successes_on_channel"), 0),
-    ("informed seller, all successes", "176", lambda: coverage("successes"), 0),
+    ("informed seller, closable successes", "97", lambda: coverage("successes_on_channel"), 0),
+    ("informed seller, all successes", "183", lambda: coverage("successes"), 0),
+    ("informed seller, closable successes, alias", "87",
+     lambda: coverage("successes_on_channel", "alias"), 0),
+    ("informed seller, all successes, alias", "176", lambda: coverage("successes", "alias"), 0),
     ("informed seller, CaMeL travel pairs exhausting repairs", "77",
      lambda: camel_run("travel", "camel_exhausted"), 0),
     ("informed seller, CaMeL benign travel utility", "1/20",
