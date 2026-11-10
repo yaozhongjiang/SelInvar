@@ -18,7 +18,7 @@ pip install -r requirements.txt
 make all
 ```
 
-`make test` runs 66 invariants. `make verify` recomputes 115 reported values from
+`make test` runs 66 invariants. `make verify` recomputes 196 reported values from
 the summaries in `outputs/processed/` and fails if any disagrees. Values of
 `0.0000` are asserted as invariances over every task rather than as rounded
 means, so a single non-zero task fails the check.
@@ -77,6 +77,30 @@ Attack success and task utility there are AgentDojo's own `security` and
 `utility` verdicts; this repository supplies only the defenses.
 `src/adj_defenses.py` imports nothing from AgentDojo, so `make test` checks the
 operators without that environment.
+
+### A seller who knows the closure rule
+
+`scripts/run_informed_seller.py --scale 1` and `--scale 3` let a seller pick,
+per task and with knowledge of the rule, the most harmful of 34 renderings while
+the true contract stays fixed: keeping every clause, swapping clauses at equal
+expected cost, or concealing clauses that still bind. It also prices the two
+repairs, a trusted reference contract and a known bound on concealed mass.
+Scripted and deterministic; `make verify` reads the result from
+`outputs/processed/informed_seller.csv`.
+
+### CaMeL in the same harness
+
+`scripts/run_camel_full.sh`, `run_camel_isolated.py`, `run_gpt4o_travel.sh` and
+`run_camel_benign_task.sh` run the public CaMeL implementation
+(`google-research/camel-prompt-injection`, commit `f083b6b`) beside snapshot-matched
+undefended and canonicalization arms, with AgentDojo 0.1.35, suites v1.2.1 and
+AgentDojo's own verdicts. CaMeL is installed in its own environment at
+`../external/camel-prompt-injection` with `agentdojo==0.1.35`, and the runs need an
+OpenAI API key in that directory's `.env`. `run_camel_isolated.py` gives each
+task-injection pair its own process, so an interpreter crash costs one pair and
+is recorded rather than scored. `scripts/analyze_camel.py` and
+`scripts/summarize_harness.py` write `camel_harness.csv`,
+`camel_harness_runs.csv` and `agentdojo_coverage.csv` to `outputs/processed/`.
 
 ## Scope
 

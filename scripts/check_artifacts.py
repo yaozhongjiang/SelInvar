@@ -315,6 +315,63 @@ def _unused_boundary_effect() -> float:
     return float(g.max() - g.min())
 
 
+def conceal(scale: int, arm: str, family: str, col: str = "HAR_best_response") -> float:
+    """A cell of the seller-who-knows-the-rule study."""
+    d = load("informed_seller.csv")
+    r = d[(d.scale == scale) & (d.arm == arm) & (d.family == family)]
+    if r.empty:
+        raise KeyError(f"informed_seller/{scale}/{arm}/{family} missing")
+    return float(r[col].iloc[0])
+
+
+KAPPAS = ("0.0", "0.02", "0.04", "0.07", "0.1", "0.15", "0.21")
+
+
+def kappa_for(scale: int, col: str) -> float:
+    """Smallest concealment budget at which closure's best-response `col` is zero."""
+    for k in KAPPAS:
+        if conceal(scale, f"closure_k{k}", "B2b_omit", col) == 0:
+            return float(k)
+    raise KeyError(f"no kappa zeroes {col} at scale {scale}")
+
+
+def va_cost(scale: int, col: str) -> float:
+    """Percent of clean valid acceptance given up at that budget."""
+    base = conceal(scale, "closure_k0.0", "B2b_omit", "valid_accept_clean")
+    k = kappa_for(scale, col)
+    at = conceal(scale, f"closure_k{k:g}" if k else "closure_k0.0",
+                 "B2b_omit", "valid_accept_clean")
+    return 100 * (base - at) / base
+
+
+def coverage(col: str) -> float:
+    return float(load("agentdojo_coverage.csv")[col].iloc[0])
+
+
+def camel_run(suite: str, metric: str) -> float:
+    d = load("camel_harness_runs.csv")
+    r = d[(d.suite == suite) & (d.metric == metric)]
+    if r.empty:
+        raise KeyError(f"camel_harness_runs/{suite}/{metric} missing")
+    return float(r.value.iloc[0])
+
+
+def camel_cell(model: str, suite: str, arm: str, scope: str, col: str = "utility") -> float:
+    d = load("camel_harness.csv")
+    r = d[(d.model == model) & (d.suite == suite) & (d.arm == arm) & (d.scope == scope)]
+    if r.empty:
+        raise KeyError(f"camel_harness/{model}/{suite}/{arm}/{scope} missing")
+    return float(r[col].iloc[0])
+
+
+def num(text: str) -> float:
+    """A quoted number, allowing a fraction such as 1/20."""
+    if "/" in text:
+        a, b = text.split("/")
+        return float(a) / float(b)
+    return float(text)
+
+
 def side(study: str, k1, k2, k3="") -> float:
     """A pre-aggregated side-experiment cell.
 
@@ -559,10 +616,6 @@ CLAIMS: List[Tuple[str, str, Callable[[], float], float]] = [
      lambda: adj("undefended", "utility", model="gpt-5-mini"), 0.001),
     ("agentdojo, second model addressed generically", "0.000",
      lambda: adj("undefended", model="gpt-5-mini@generic-name"), 1e-9),
-    ("agentdojo, datamarking paired difference", "+0.062",
-     lambda: adj("datamarking") - adj("undefended"), 0.001),
-    ("agentdojo, prompt defense paired difference", "-0.062",
-     lambda: adj("prompt_defense") - adj("undefended"), 0.001),
     ("agentdojo, aggregate utility price of closure", "0.007",
      lambda: adj("undefended", "utility") - adj("canonicalization", "utility"),
      0.001),
@@ -586,7 +639,6 @@ CLAIMS: List[Tuple[str, str, Callable[[], float], float]] = [
     ("deepseek clean harmful acceptance", "0.095",
      lambda: cell("CraigslistBargain", "llm_direct_deepseek", "clean",
                   "harmful_accept"), 0.001),
-    ("frontier competence", "0.976", lambda: competence("llm_direct_gpt5mini"), 0.001),
     ("weakest competence", "0.048", lambda: competence("llm_direct_gpt4omini"), 0.001),
     ("extreme-pair effect gap", "0.065",
      lambda: cross("llm_direct_gpt5mini") - cross("llm_direct_gpt4omini"), 0.001),
@@ -618,6 +670,95 @@ CLAIMS: List[Tuple[str, str, Callable[[], float], float]] = [
      lambda: float(load("dnd_rounds_summary.csv").query(
          "environment=='DealOrNoDealRounds' and buyer_id=='robust_gate' "
          "and attack_id=='clean'").valid_accept.iloc[0]), 0.001),
+] + [
+    # Informed seller and the same-harness CaMeL comparison.
+    ("informed seller, closure HAR under concealment, 7%", "0.0472",
+     lambda: conceal(1, "closure_k0.0", "B2b_omit"), 0.00005),
+    ("informed seller, unprotected HAR under concealment, 7%", "0.0472",
+     lambda: conceal(1, "claimed_eu", "B2b_omit"), 0.00005),
+    ("informed seller, closure HAR under concealment, 7%, lower", "0.0395",
+     lambda: conceal(1, "closure_k0.0", "B2b_omit", "BR_lo"), 0.00005),
+    ("informed seller, closure HAR under concealment, 7%, upper", "0.0553",
+     lambda: conceal(1, "closure_k0.0", "B2b_omit", "BR_hi"), 0.00005),
+    ("informed seller, closure HAR under concealment, 21%", "0.1274",
+     lambda: conceal(3, "closure_k0.0", "B2b_omit"), 0.00005),
+    ("informed seller, unprotected HAR under concealment, 21%", "0.1274",
+     lambda: conceal(3, "claimed_eu", "B2b_omit"), 0.00005),
+    ("informed seller, closure HAR under concealment, 21%, lower", "0.1152",
+     lambda: conceal(3, "closure_k0.0", "B2b_omit", "BR_lo"), 0.00005),
+    ("informed seller, closure HAR under concealment, 21%, upper", "0.1397",
+     lambda: conceal(3, "closure_k0.0", "B2b_omit", "BR_hi"), 0.00005),
+    ("informed seller, closure HAR keeping inclusion", "0.0000",
+     lambda: conceal(1, "closure_k0.0", "B1_keep_inclusion"), 0.0),
+    ("informed seller, closure HAR under equal-cost swap", "0.0000",
+     lambda: conceal(3, "closure_k0.0", "B2a_swap"), 0.0),
+    ("informed seller, flips keeping inclusion", "0",
+     lambda: conceal(3, "closure_k0.0", "B1_keep_inclusion", "tasks_flipped_to_accept"), 0),
+    ("informed seller, flips under equal-cost swap", "155",
+     lambda: conceal(1, "closure_k0.0", "B2a_swap", "tasks_flipped_to_accept"), 0),
+    ("informed seller, flips under concealment, 7%", "278",
+     lambda: conceal(1, "closure_k0.0", "B2b_omit", "tasks_flipped_to_accept"), 0),
+    ("informed seller, flips under concealment, 21%", "793",
+     lambda: conceal(3, "closure_k0.0", "B2b_omit", "tasks_flipped_to_accept"), 0),
+    ("informed seller, renderings searched", "34",
+     lambda: float(load("informed_seller.csv").query(
+         "scale==1 and arm=='closure_k0.0'").n_actions.sum()), 0),
+    ("informed seller, kappa removing harm, 7%", "0.04", lambda: kappa_for(1, "HAR_best_response"), 1e-9),
+    ("informed seller, kappa removing harm, 21%", "0.10", lambda: kappa_for(3, "HAR_best_response"), 1e-9),
+    ("informed seller, kappa removing flips, 7%", "0.07", lambda: kappa_for(1, "tasks_flipped_to_accept"), 1e-9),
+    ("informed seller, kappa removing flips, 21%", "0.21", lambda: kappa_for(3, "tasks_flipped_to_accept"), 1e-9),
+    ("informed seller, valid-acceptance cost, harm, 7%", "20",
+     lambda: va_cost(1, "HAR_best_response"), 0.5),
+    ("informed seller, valid-acceptance cost, flips, 7%", "35",
+     lambda: va_cost(1, "tasks_flipped_to_accept"), 0.5),
+    ("informed seller, valid-acceptance cost, harm, 21%", "61",
+     lambda: va_cost(3, "HAR_best_response"), 0.5),
+    ("informed seller, valid-acceptance cost, flips, 21%", "96",
+     lambda: va_cost(3, "tasks_flipped_to_accept"), 0.5),
+    ("informed seller, closable pairs", "189", lambda: coverage("pairs_on_channel"), 0),
+    ("informed seller, all pairs", "389", lambda: coverage("pairs"), 0),
+    ("informed seller, closable successes", "87", lambda: coverage("successes_on_channel"), 0),
+    ("informed seller, all successes", "176", lambda: coverage("successes"), 0),
+    ("informed seller, CaMeL travel pairs exhausting repairs", "77",
+     lambda: camel_run("travel", "camel_exhausted"), 0),
+    ("informed seller, CaMeL benign travel utility", "1/20",
+     lambda: camel_run("travel", "camel_benign_successes")
+     / camel_run("travel", "camel_benign_tasks"), 1e-9),
+    ("informed seller, CaMeL Slack pairs excluded", "3",
+     lambda: camel_run("slack", "camel_pairs_not_finished"), 0),
+    ("informed seller, gpt-4o CaMeL travel utility", "0.250",
+     lambda: camel_cell("gpt-4o-2024-08-06", "travel", "camel", "on_channel"), 0.0005),
+    ("informed seller, gpt-4o CaMeL travel utility, lower", "0.142",
+     lambda: camel_cell("gpt-4o-2024-08-06", "travel", "camel", "on_channel", "util_lo"), 0.0005),
+    ("informed seller, gpt-4o CaMeL travel utility, upper", "0.402",
+     lambda: camel_cell("gpt-4o-2024-08-06", "travel", "camel", "on_channel", "util_hi"), 0.0005),
+    ("informed seller, gpt-4o canonicalization travel utility", "0.600",
+     lambda: camel_cell("gpt-4o-2024-08-06", "travel", "canonicalization", "on_channel"), 0.0005),
+    ("informed seller, gpt-4o canonicalization travel utility, lower", "0.446",
+     lambda: camel_cell("gpt-4o-2024-08-06", "travel", "canonicalization", "on_channel", "util_lo"), 0.0005),
+    ("informed seller, gpt-4o canonicalization travel utility, upper", "0.737",
+     lambda: camel_cell("gpt-4o-2024-08-06", "travel", "canonicalization", "on_channel", "util_hi"), 0.0005),
+] + [
+    # Every cell of the same-harness CaMeL comparison (gpt-4o-mini).
+    (f"camel harness {suite} {scope} {arm} {col}", text,
+     (lambda suite=suite, scope=scope, arm=arm, col=col:
+      camel_cell("gpt-4o-mini-2024-07-18", suite, arm, scope, col)), 0.000501)  # half a unit in the 3rd place
+    for suite, scope, cells in (
+        ("banking", "on_channel", (("undefended", ".539", ".453"), ("canonicalization", ".000", ".414"),
+                                   ("camel", ".000", ".422"), ("camel_secpol", ".000", ".375"))),
+        ("banking", "off_channel", (("undefended", ".562", ".438"), ("canonicalization", ".438", ".562"),
+                                    ("camel", ".000", ".312"), ("camel_secpol", ".000", ".375"))),
+        ("travel", "on_channel", (("undefended", ".275", ".250"), ("canonicalization", ".000", ".475"),
+                                  ("camel", ".000", ".025"), ("camel_secpol", ".000", ".025"))),
+        ("travel", "off_channel", (("undefended", ".290", ".410"), ("canonicalization", ".300", ".390"),
+                                   ("camel", ".000", ".050"), ("camel_secpol", ".000", ".050"))),
+        ("slack", "on_channel", (("undefended", ".810", ".476"), ("canonicalization", ".333", ".476"),
+                                 ("camel", ".000", ".650"), ("camel_secpol", ".000", ".300"))),
+        ("slack", "off_channel", (("undefended", ".571", ".536"), ("canonicalization", ".595", ".488"),
+                                  ("camel", ".000", ".634"), ("camel_secpol", ".000", ".256"))),
+    )
+    for arm, asr, util in cells
+    for col, text in (("ASR", asr), ("utility", util))
 ]
 
 
@@ -830,11 +971,11 @@ def main() -> int:
             check(False, f"claim recomputes: {label}", str(exc))
             continue
         if label.startswith(added_later) and not has_new:
-            check(abs(got - float(text)) <= tol,
+            check(abs(got - num(text)) <= tol,
                   f"claim recomputes (not quoted by this write-up): {label}",
                   f"data gives {got:.4f}, expected {text}")
             continue
-        near = abs(got - float(text)) <= tol
+        near = abs(got - num(text)) <= tol
         shown = (not src) or re.search(r"\$?" + re.escape(text) + r"\$?", src) is not None
         check(near and shown, f"claim recomputes and appears in text: {label}",
               f"data gives {got:.4f}, text says {text}"

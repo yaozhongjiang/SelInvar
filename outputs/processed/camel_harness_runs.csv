@@ -1,0 +1,12 @@
+suite,metric,value
+banking,camel_pairs_not_finished,0
+travel,camel_pairs_not_finished,0
+slack,camel_pairs_not_finished,3
+banking,camel_exhausted,1
+slack,camel_exhausted,6
+travel,camel_exhausted,77
+banking,camel_pairs_finished,144
+slack,camel_pairs_finished,102
+travel,camel_pairs_finished,140
+travel,camel_benign_successes,1
+travel,camel_benign_tasks,20
