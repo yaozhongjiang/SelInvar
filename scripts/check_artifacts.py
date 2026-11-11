@@ -344,6 +344,14 @@ def va_cost(scale: int, col: str) -> float:
     return 100 * (base - at) / base
 
 
+def dominance(action: str, col: str) -> float:
+    d = load("valuation_dominance.csv")
+    r = d[d.action == action]
+    if r.empty:
+        raise KeyError(f"valuation_dominance/{action} missing")
+    return float(r[col].iloc[0])
+
+
 def coverage(col: str, config: str = "snapshot") -> float:
     d = load("agentdojo_coverage.csv")
     return float(d[d.config == config][col].iloc[0])
@@ -716,6 +724,16 @@ CLAIMS: List[Tuple[str, str, Callable[[], float], float]] = [
      lambda: va_cost(3, "HAR_best_response"), 0.5),
     ("informed seller, valid-acceptance cost, flips, 21%", "96",
      lambda: va_cost(3, "tasks_flipped_to_accept"), 0.5),
+    ("valuation dominance, contract complexity, ordinary inclusion", "486",
+     lambda: dominance("contract_complexity", "ordinary_inclusion_holds"), 0),
+    ("valuation dominance, tail incentive, ordinary inclusion", "486",
+     lambda: dominance("tail_incentive", "ordinary_inclusion_holds"), 0),
+    ("valuation dominance, contract complexity, tasks failing", "0",
+     lambda: dominance("contract_complexity", "tasks") - dominance("contract_complexity", "dominance_holds"), 0),
+    ("valuation dominance, tail incentive, tasks failing", "0",
+     lambda: dominance("tail_incentive", "tasks") - dominance("tail_incentive", "dominance_holds"), 0),
+    ("valuation dominance, equal-cost swap, tasks holding", "0",
+     lambda: dominance("incomparable_swap", "dominance_holds"), 0),
     ("informed seller, closable pairs", "189", lambda: coverage("pairs_on_channel"), 0),
     ("informed seller, all pairs", "389", lambda: coverage("pairs"), 0),
     ("informed seller, closable successes", "97", lambda: coverage("successes_on_channel"), 0),

@@ -18,7 +18,7 @@ pip install -r requirements.txt
 make all
 ```
 
-`make test` runs 66 invariants. `make verify` recomputes 205 reported values from
+`make test` runs 66 invariants. `make verify` recomputes 210 reported values from
 the summaries in `outputs/processed/` and fails if any disagrees. Values of
 `0.0000` are asserted as invariances over every task rather than as rounded
 means, so a single non-zero task fails the check.
@@ -87,6 +87,15 @@ expected cost, or concealing clauses that still bind. It also prices the two
 repairs, a trusted reference contract and a known bound on concealed mass.
 Scripted and deterministic; `make verify` reads the result from
 `outputs/processed/informed_seller.csv`.
+
+### Valuation dominance
+
+`scripts/check_dominance.py` enumerates, for every held-out task, the closure's
+completions on the clean and the manipulated rendering and checks that each clean
+completion has a manipulated one at least as bad for the buyer. It records
+ordinary inclusion beside it and asserts that the minimum over completions is the
+closed value the deployed rule uses. `make verify` reads the result from
+`outputs/processed/valuation_dominance.csv`.
 
 ### CaMeL in the same harness
 
